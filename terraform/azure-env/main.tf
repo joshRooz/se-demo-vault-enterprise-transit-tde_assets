@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 2.96.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.5.1"
+    }
   }
 }
 
@@ -14,8 +18,16 @@ provider "azurerm" {
 variable "prefix" {}
 variable "location" {}
 
+resource "random_string" "context" {
+  length  = 5
+  special = false
+  lower   = true
+  numeric = false
+  upper   = false
+}
+
 resource "azurerm_resource_group" "azenv" {
-  name     = "${var.prefix}-rg"
+  name     = "${var.prefix}-${random_string.context.result}-rg"
   location = var.location
 }
 

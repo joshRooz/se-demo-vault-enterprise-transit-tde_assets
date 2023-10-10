@@ -26,7 +26,7 @@ resource "azurerm_windows_virtual_machine" "windows" {
   name                = "${var.prefix}-mssql"
   resource_group_name = var.resource_group_name
   location            = var.resource_group_location
-  size                = "Standard_B2s"
+  size                = "Standard_DS4_v2"
   admin_username      = "mssql-tde-dev"
   admin_password      = random_password.password.result
   network_interface_ids = [

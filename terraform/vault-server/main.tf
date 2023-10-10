@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 2.96.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "4.0.4"
+    }
   }
 }
 
@@ -12,16 +16,22 @@ variable "resource_group_name" {}
 variable "resource_group_location" {}
 variable "resource_group_subnet_id" {}
 variable "network_security_group_name" {}
+variable "license" {}
 
 provider "azurerm" {
   features {}
+}
+
+resource "tls_private_key" "ssh" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
 }
 
 resource "azurerm_linux_virtual_machine" "linux" {
   name                = "${var.prefix}-linux"
   resource_group_name = var.resource_group_name
   location            = var.resource_group_location
-  size                = "Standard_B1s"
+  size                = "Standard_B2s"
   admin_username      = "vadmin"
   network_interface_ids = [
     azurerm_network_interface.linux.id,
@@ -29,7 +39,7 @@ resource "azurerm_linux_virtual_machine" "linux" {
 
   admin_ssh_key {
     username   = "vadmin"
-    public_key = file("./.ssh/id_rsa.pub")
+    public_key = tls_private_key.ssh.public_key_openssh
   }
 
   os_disk {
@@ -106,7 +116,7 @@ resource "null_resource" "deploy-vault-instance" {
     connection {
       type        = "ssh"
       user        = "vadmin"
-      private_key = file("./.ssh/id_rsa")
+      private_key = tls_private_key.ssh.private_key_openssh
       host        = azurerm_linux_virtual_machine.linux.public_ip_address
     }
   }
@@ -118,19 +128,19 @@ resource "null_resource" "deploy-vault-instance" {
     connection {
       type        = "ssh"
       user        = "vadmin"
-      private_key = file("./.ssh/id_rsa")
+      private_key = tls_private_key.ssh.private_key_openssh
       host        = azurerm_linux_virtual_machine.linux.public_ip_address
     }
   }
 
   provisioner "file" {
-    source      = "/var/vault-license.hclic"
+    content     = var.license
     destination = "/tmp/vault.hclic"
 
     connection {
       type        = "ssh"
       user        = "vadmin"
-      private_key = file("./.ssh/id_rsa")
+      private_key = tls_private_key.ssh.private_key_openssh
       host        = azurerm_linux_virtual_machine.linux.public_ip_address
     }
   }
@@ -144,7 +154,7 @@ resource "null_resource" "deploy-vault-instance" {
     connection {
       type        = "ssh"
       user        = "vadmin"
-      private_key = file("./.ssh/id_rsa")
+      private_key = tls_private_key.ssh.private_key_openssh
       host        = azurerm_linux_virtual_machine.linux.public_ip_address
     }
   }
@@ -156,4 +166,8 @@ resource "null_resource" "deploy-vault-instance" {
 
 output "azurerm_public_ip" {
   value = azurerm_linux_virtual_machine.linux.public_ip_address
+}
+
+output "private_key_openssh" {
+  value = tls_private_key.ssh.private_key_openssh
 }
