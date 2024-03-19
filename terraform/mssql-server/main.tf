@@ -46,6 +46,23 @@ resource "azurerm_windows_virtual_machine" "windows" {
   }
 }
 
+resource "azurerm_virtual_machine_extension" "init" {
+  name                 = "init"
+  virtual_machine_id   = azurerm_windows_virtual_machine.windows.id
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.10"
+
+  settings = jsonencode({
+    fileUris = ["https://github.com/joshRooz/powershell-ekm-provider/archive/refs/heads/main.zip"]
+  })
+  protected_settings = jsonencode({
+    commandToExecute = <<-EOF
+      powershell -ExecutionPolicy Unrestricted Expand-Archive main.zip -DestinationPath C:\Users\${azurerm_windows_virtual_machine.windows.admin_username}\Downloads
+    EOF
+  })
+}
+
 resource "azurerm_network_interface" "windows" {
   name                = "${var.prefix}-windows-nic"
   location            = var.resource_group_location

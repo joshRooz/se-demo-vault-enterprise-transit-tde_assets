@@ -35,18 +35,29 @@ vault secrets enable -path=vault-admin -version=2 kv
 sleep 10
 vault kv put vault-admin/vault-unseal @vault-unseal.json
 
-cat << EOF > admins.hcl
-path "sys/health" { capabilities = ["read", "sudo"] }
-path "sys/policies/acl" { capabilities = ["list"] }
-path "sys/policies/acl/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "auth/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "sys/auth/*" { capabilities = ["create", "update", "delete", "sudo"] }
-path "sys/auth" { capabilities = ["read"] }
-path "secret/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "sys/mounts/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "sys/mounts" { capabilities = [ "read", "list" ] }
+vault policy write admins - <<EOF
+path "*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
+EOF
 
-# Required to work with EKM Provider 
+
+vault auth enable userpass
+vault write auth/userpass/users/admin \
+    password=correct-horse-battery-staple \
+    policies=admins
+
+%{ if namespace != "" ~}
+vault namespace create ${namespace}
+export VAULT_NAMESPACE=${namespace}
+%{~ endif }
+
+vault auth enable approle
+vault write auth/approle/role/tde-role \
+  token_ttl=15m max_token_ttl=30m token_policies=tde-policy
+
+vault secrets enable transit
+vault write -f transit/keys/ekm-encryption-key type=rsa-2048
+
+vault policy write tde-policy - <<EOF
 path "transit/keys/ekm-encryption-key" { capabilities = ["create", "read", "update", "delete"] }
 path "transit/keys" { capabilities = ["list"] }
 path "transit/encrypt/ekm-encryption-key" { capabilities = ["update"] }
@@ -54,11 +65,5 @@ path "transit/decrypt/ekm-encryption-key" { capabilities = ["update"] }
 path "sys/license/status" { capabilities = ["read"] }
 EOF
 
-vault policy write admins admins.hcl
-
-vault auth enable userpass
-vault write auth/userpass/users/admin \
-    password=correct-horse-battery-staple \
-    policies=admins
 
 exit

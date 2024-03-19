@@ -16,6 +16,7 @@ variable "resource_group_name" {}
 variable "resource_group_location" {}
 variable "resource_group_subnet_id" {}
 variable "network_security_group_name" {}
+variable "tde_namespace" {}
 variable "license" {}
 
 provider "azurerm" {
@@ -122,7 +123,7 @@ resource "null_resource" "deploy-vault-instance" {
   }
 
   provisioner "file" {
-    source      = "./templates/initialize-vault-instance.bash"
+    content     = templatefile("${path.root}/templates/initialize-vault-instance.bash", { namespace = var.tde_namespace })
     destination = "/tmp/initialize-vault-instance.bash"
 
     connection {

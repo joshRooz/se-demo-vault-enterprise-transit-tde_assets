@@ -18,6 +18,11 @@ variable "vault_license" {
   type = string
 }
 
+variable "tde_namespace" {
+  type    = string
+  default = ""
+}
+
 variable "tfc" {
   type = object({
     organization = string
@@ -41,6 +46,7 @@ module "vault-server" {
   source                      = "./vault-server"
   prefix                      = var.prefix
   license                     = var.vault_license
+  tde_namespace               = var.tde_namespace
   resource_group_name         = module.azure-env.azurerm_resource_group_name
   resource_group_location     = module.azure-env.azurerm_resource_group_location
   resource_group_subnet_id    = module.azure-env.azurerm_resource_group_subnet_id
@@ -84,7 +90,7 @@ output "vault_server_http_url" {
 }
 
 output "vault_server_ssh_cmd" {
-  value = "ssh -i .ssh/id_rsa vadmin@${module.vault-server.azurerm_public_ip}"
+  value = "ssh -i private-key vadmin@${module.vault-server.azurerm_public_ip}"
 }
 
 output "mssql_server_public_ip" {
