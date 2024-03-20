@@ -58,7 +58,11 @@ resource "azurerm_virtual_machine_extension" "init" {
   })
   protected_settings = jsonencode({
     commandToExecute = <<-EOF
-      powershell -ExecutionPolicy Unrestricted Expand-Archive main.zip -DestinationPath C:\Users\${azurerm_windows_virtual_machine.windows.admin_username}\Downloads
+      powershell -ExecutionPolicy Unrestricted Expand-Archive main.zip -DestinationPath ${format(
+        "C:\\Users\\%s.%s\\Downloads",
+        azurerm_windows_virtual_machine.windows.admin_username,
+        azurerm_windows_virtual_machine.windows.name
+      )}
     EOF
   })
 }
